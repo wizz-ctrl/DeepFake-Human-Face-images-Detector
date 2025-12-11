@@ -61,8 +61,8 @@ Thumbs.db
 .env
 .venv
 
-# Streamlit
-.streamlit/
+# Streamlit secrets (but allow config)
+.streamlit/secrets.toml
 
 # Model files (handled by Git LFS)
 # deepfake_detector_v4_40k.h5
