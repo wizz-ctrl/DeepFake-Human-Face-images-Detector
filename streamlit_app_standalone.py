@@ -179,6 +179,35 @@ def boxes_overlap_iou(box1, box2):
     return intersection / union if union > 0 else 0.0
 
 
+def is_contained_in(small_box, large_box, threshold=0.7):
+    """
+    Check if small_box is mostly contained within large_box.
+    Returns True if 'threshold' fraction of small_box area is inside large_box.
+    This catches nested face detections (face inside face).
+    """
+    x1, y1, w1, h1 = small_box[:4]
+    x2, y2, w2, h2 = large_box[:4]
+    
+    # Calculate intersection
+    xi1 = max(x1, x2)
+    yi1 = max(y1, y2)
+    xi2 = min(x1 + w1, x2 + w2)
+    yi2 = min(y1 + h1, y2 + h2)
+    
+    if xi2 <= xi1 or yi2 <= yi1:
+        return False
+    
+    intersection = (xi2 - xi1) * (yi2 - yi1)
+    small_area = w1 * h1
+    
+    # Check if most of small box is inside large box
+    if small_area > 0:
+        containment_ratio = intersection / small_area
+        return containment_ratio >= threshold
+    
+    return False
+
+
 def detect_faces_single_pass(bgr_image, face_net, confidence_threshold=0.3):
     """Run a single detection pass on an image."""
     h, w = bgr_image.shape[:2]
@@ -295,17 +324,33 @@ def detect_faces_dnn(image_array, face_net, confidence_threshold=0.3):
                 all_faces.append((abs_x, abs_y, abs_w, abs_h, conf))
     
     # ===== Non-Maximum Suppression =====
-    # Sort by confidence (highest first)
-    all_faces.sort(key=lambda f: f[4], reverse=True)
+    # Sort by area (largest first) - prefer larger face detections
+    all_faces.sort(key=lambda f: f[2] * f[3], reverse=True)
     
-    # NMS: keep only non-overlapping faces
+    # NMS: keep only non-overlapping faces, suppress nested faces
     final_faces = []
     for face in all_faces:
         is_duplicate = False
+        face_area = face[2] * face[3]
+        
         for existing in final_faces:
+            existing_area = existing[2] * existing[3]
+            
+            # Check IoU overlap
             if boxes_overlap_iou(face, existing) > 0.3:
                 is_duplicate = True
                 break
+            
+            # Check if current face is inside an existing larger face (nested detection)
+            if face_area < existing_area and is_contained_in(face, existing, threshold=0.6):
+                is_duplicate = True
+                break
+            
+            # Check if an existing face would be inside this face (shouldn't happen since sorted by area)
+            if existing_area < face_area and is_contained_in(existing, face, threshold=0.6):
+                is_duplicate = True
+                break
+        
         if not is_duplicate:
             final_faces.append(face)
     
