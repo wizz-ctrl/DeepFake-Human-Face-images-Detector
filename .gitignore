@@ -1,0 +1,69 @@
+# Gitignore for Deepfake Detector Project
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# TensorFlow / Keras - Large models tracked by Git LFS
+# *.h5  # REMOVED - Now tracked by Git LFS
+# *.hdf5  # REMOVED - Now tracked by Git LFS
+*.pb
+saved_model/
+checkpoints/
+
+# Dataset (large files - too big for GitHub)
+Dataset/
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Training artifacts
+training_history*.png
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.venv
+
+# Streamlit secrets (but allow config)
+.streamlit/secrets.toml
+
+# Model files (handled by Git LFS)
+# deepfake_detector_v4_40k.h5
+# best_recall_phase2.h5

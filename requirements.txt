@@ -1,0 +1,6 @@
+# Streamlit Cloud deployment requirements
+streamlit
+tensorflow-cpu
+opencv-python-headless
+numpy
+Pillow

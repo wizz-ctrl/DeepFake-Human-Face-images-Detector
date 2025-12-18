@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Detector</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           CSS VARIABLES
+           ============================================ */
+        :root {
+            /* Colors */
+            --bg-dark: #0a1628;
+            --bg-medium: #1a365d;
+            --bg-blue: #2563eb;
+            --bg-light-blue: #60a5fa;
+            --bg-lighter-blue: #bfdbfe;
+            
+            /* Text Colors */
+            --text-white: #ffffff;
+            --text-light: #e0e7ff;
+            --text-muted: #666;
+            --text-muted-light: #999;
+            
+            /* Status Colors */
+            --success-green: #4CAF50;
+            --success-light: #E8F5E9;
+            --success-medium: #C8E6C9;
+            --success-dark: #2E7D32;
+            --success-darker: #1B5E20;
+            
+            --danger-red: #F44336;
+            --danger-light: #FFEBEE;
+            --danger-medium: #FFCDD2;
+            --danger-dark: #C62828;
+            --danger-darker: #B71C1C;
+            
+            --warning-orange: #FF9800;
+            --warning-light: #FFF3E0;
+            --warning-medium: #FFE0B2;
+            --warning-dark: #E65100;
+            
+            --caution-yellow: #FFC107;
+            --caution-light: #FFF8E1;
+            --caution-medium: #FFECB3;
+            --caution-dark: #FF8F00;
+            
+            --info-blue: #2196F3;
+            --info-light: #E3F2FD;
+            --info-medium: #BBDEFB;
+            --info-dark: #1565C0;
+            
+            /* Fonts */
+            --font-title: 'Audiowide', cursive;
+            --font-body: 'Exo 2', sans-serif;
+        }
+
+        /* ============================================
+           BASE STYLES
+           ============================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: var(--font-body);
+            min-height: 100vh;
+        }
+
+        body {
+            background: linear-gradient(to right, var(--bg-dark), var(--bg-medium), var(--bg-blue), var(--bg-light-blue), var(--bg-lighter-blue));
+            color: var(--text-white);
+        }
+
+        /* ============================================
+           LAYOUT
+           ============================================ */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(to bottom, var(--bg-dark), #1e3a5f);
+            padding: 2rem 1.5rem;
+            color: var(--text-light);
+        }
+
+        .sidebar h2 {
+            font-family: var(--font-body);
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+        }
+
+        .sidebar p, .sidebar li {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-light);
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .sidebar li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .sidebar li::before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            font-weight: 600;
+            color: var(--bg-light-blue);
+        }
+
+        .sidebar ul {
+            counter-reset: step;
+        }
+
+        .sidebar hr {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            margin: 1.5rem 0;
+        }
+
+        .metrics-list {
+            counter-reset: none !important;
+        }
+
+        .metrics-list li::before {
+            content: "•";
+            color: var(--success-green);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 2rem 3rem;
+        }
+
+        /* ============================================
+           HEADER STYLES
+           ============================================ */
+        .main-header {
+            font-family: var(--font-title);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-white);
+            text-align: center;
+            margin-bottom: 0.5rem;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .sub-header {
+            font-family: var(--font-body);
+            font-size: 1.2rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        /* ============================================
+           UPLOAD SECTION
+           ============================================ */
+        .upload-section {
+            margin-bottom: 2rem;
+        }
+
+        .upload-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.4);
+            border-radius: 10px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .upload-area:hover {
+            border-color: var(--bg-light-blue);
+            background: rgba(255,255,255,0.1);
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-area p {
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-area .help-text {
+            font-size: 0.85rem;
+            color: var(--text-muted-light);
+        }
+
+        /* ============================================
+           IMAGE DISPLAY GRID
+           ============================================ */
+        .image-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .image-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .image-card h3 {
+            padding: 1rem;
+            font-size: 1.1rem;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* ============================================
+           METRICS SECTION
+           ============================================ */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-box {
+            background: rgba(255,255,255,0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-box .label {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-box .value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .metric-box .delta {
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .delta.positive {
+            color: var(--success-green);
+        }
+
+        .delta.negative {
+            color: var(--danger-red);
+        }
+
+        /* ============================================
+           VERDICT CARDS
+           ============================================ */
+        .verdict-card {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        .verdict-card h2 {
+            margin: 0 0 10px 0;
+            font-size: 1.5rem;
+        }
+
+        .verdict-card p {
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        /* Authentic / Real */
+        .verdict-authentic {
+            background: linear-gradient(135deg, var(--success-light) 0%, var(--success-medium) 100%);
+            border-left: 5px solid var(--success-green);
+        }
+
+        .verdict-authentic h2 {
+            color: var(--success-dark);
+        }
+
+        .verdict-authentic p {
+            color: var(--success-darker);
+        }
+
+        /* Fake */
+        .verdict-fake {
+            background: linear-gradient(135deg, var(--danger-light) 0%, var(--danger-medium) 100%);
+            border-left: 5px solid var(--danger-red);
+        }
+
+        .verdict-fake h2 {
+            color: var(--danger-dark);
+        }
+
+        .verdict-fake p {
+            color: var(--danger-darker);
+        }
+
+        /* Likely Fake */
+        .verdict-likely-fake {
+            background: linear-gradient(135deg, var(--warning-light) 0%, var(--warning-medium) 100%);
+            border-left: 5px solid var(--warning-orange);
+        }
+
+        .verdict-likely-fake h2 {
+            color: var(--warning-dark);
+        }
+
+        .verdict-likely-fake p {
+            color: #EF6C00;
+        }
+
+        /* Suspicious */
+        .verdict-suspicious {
+            background: linear-gradient(135deg, var(--caution-light) 0%, var(--caution-medium) 100%);
+            border-left: 5px solid var(--caution-yellow);
+        }
+
+        .verdict-suspicious h2 {
+            color: var(--caution-dark);
+        }
+
+        .verdict-suspicious p {
+            color: #FF6F00;
+        }
+
+        /* Mostly Authentic */
+        .verdict-mostly-authentic {
+            background: linear-gradient(135deg, var(--info-light) 0%, var(--info-medium) 100%);
+            border-left: 5px solid var(--info-blue);
+        }
+
+        .verdict-mostly-authentic h2 {
+            color: var(--info-dark);
+        }
+
+        .verdict-mostly-authentic p {
+            color: #0D47A1;
+        }
+
+        /* ============================================
+           RESULT CARDS (Generic)
+           ============================================ */
+        .result-card {
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+
+        .real-card {
+            background: linear-gradient(135deg, var(--success-light) 0%, var(--success-medium) 100%);
+            border-left: 5px solid var(--success-green);
+        }
+
+        .fake-card {
+            background: linear-gradient(135deg, var(--danger-light) 0%, var(--danger-medium) 100%);
+            border-left: 5px solid var(--danger-red);
+        }
+
+        /* ============================================
+           FACE ANALYSIS GRID
+           ============================================ */
+        .face-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .face-item {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .face-item img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .face-item .label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .face-item .label.real {
+            color: var(--success-green);
+        }
+
+        .face-item .label.fake {
+            color: var(--danger-red);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar .fill {
+            height: 100%;
+            background: var(--bg-blue);
+            transition: width 0.3s ease;
+        }
+
+        .progress-bar .fill.success {
+            background: var(--success-green);
+        }
+
+        .progress-bar .fill.danger {
+            background: var(--danger-red);
+        }
+
+        /* ============================================
+           ALERTS / NOTIFICATIONS
+           ============================================ */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid var(--success-green);
+            color: var(--success-medium);
+        }
+
+        .alert-warning {
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid var(--warning-orange);
+            color: var(--warning-medium);
+        }
+
+        .alert-error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid var(--danger-red);
+            color: var(--danger-medium);
+        }
+
+        .alert-info {
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid var(--info-blue);
+            color: var(--info-medium);
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--bg-blue);
+            color: var(--text-white);
+        }
+
+        .btn-primary:hover {
+            background: var(--bg-light-blue);
+        }
+
+        .btn-success {
+            background: var(--success-green);
+            color: var(--text-white);
+        }
+
+        .btn-danger {
+            background: var(--danger-red);
+            color: var(--text-white);
+        }
+
+        /* ============================================
+           DIVIDERS
+           ============================================ */
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            margin: 2rem 0;
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .footer p {
+            color: var(--text-muted);
+        }
+
+        .footer .credits {
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer .copyright {
+            font-size: 0.75rem;
+            color: var(--text-muted-light);
+        }
+
+        /* ============================================
+           LOADING SPINNER
+           ============================================ */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.2);
+            border-top-color: var(--bg-light-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN
+           ============================================ */
+        @media (max-width: 1024px) {
+            .image-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .main-content {
+                padding: 1.5rem;
+            }
+            
+            .main-header {
+                font-size: 1.75rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .face-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Model Information</h2>
+            <p><strong>Performance Metrics:</strong></p>
+            <ul class="metrics-list">
+                <li>Accuracy: 96.5%</li>
+                <li>Fake Detection: 94.7%</li>
+                <li>Real Detection: 98.3%</li>
+                <li>AUC Score: 99.39%</li>
+            </ul>
+            
+            <hr>
+            
+            <h2>How It Works</h2>
+            <ul>
+                <li><strong>Upload</strong> any image with faces</li>
+                <li><strong>Detect</strong> all faces automatically</li>
+                <li><strong>Analyze</strong> each face for deepfakes</li>
+                <li><strong>Review</strong> detailed results</li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <h1 class="main-header">Deepfake Detection System</h1>
+            <p class="sub-header">AI-Powered Face Authentication - 96.5% Accuracy</p>
+
+            <!-- Success Alert Example -->
+            <div class="alert alert-success">
+                ✓ Model loaded successfully!
+            </div>
+
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <h3>Upload Image</h3>
+                <label class="upload-area">
+                    <input type="file" accept=".jpg,.jpeg,.png,.webp" id="fileInput">
+                    <p>📁 Drag and drop file here</p>
+                    <p class="help-text">Limit 200MB per file • JPG, JPEG, PNG, WEBP</p>
+                </label>
+            </section>
+
+            <!-- Image Grid -->
+            <div class="image-grid">
+                <div class="image-card">
+                    <h3>Original Image</h3>
+                    <img src="https://via.placeholder.com/400x300?text=Original+Image" alt="Original" id="originalImage">
+                </div>
+                <div class="image-card">
+                    <h3>Detected Faces</h3>
+                    <img src="https://via.placeholder.com/400x300?text=Detected+Faces" alt="Detected" id="detectedImage">
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Analysis Summary -->
+            <section>
+                <h3>Analysis Summary</h3>
+                <div class="metrics-grid">
+                    <div class="metric-box">
+                        <div class="label">Total Faces</div>
+                        <div class="value">3</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="label">Real Faces</div>
+                        <div class="value">2</div>
+                        <div class="delta positive">66.7%</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="label">Fake Faces</div>
+                        <div class="value">1</div>
+                        <div class="delta negative">33.3%</div>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="divider">
+
+            <!-- Verdict Examples -->
+            <section>
+                <h3>Overall Image Verdict</h3>
+                
+                <!-- Authentic Verdict -->
+                <div class="verdict-card verdict-authentic">
+                    <h2>✓ AUTHENTIC</h2>
+                    <p>All detected faces appear to be genuine with no signs of manipulation.</p>
+                    <p><strong>Confidence:</strong> HIGH</p>
+                </div>
+
+                <!-- Fake Verdict (Hidden by default - toggle with JS) -->
+                <!--
+                <div class="verdict-card verdict-fake">
+                    <h2>⚠ FAKE / DEEPFAKE</h2>
+                    <p>All detected faces show signs of AI manipulation or deepfake generation.</p>
+                    <p><strong>Confidence:</strong> HIGH</p>
+                </div>
+                -->
+
+                <!-- Likely Fake -->
+                <!--
+                <div class="verdict-card verdict-likely-fake">
+                    <h2>⚠ LIKELY FAKE</h2>
+                    <p>Majority of faces (75%) appear to be manipulated.</p>
+                    <p><strong>Confidence:</strong> MEDIUM</p>
+                </div>
+                -->
+
+                <!-- Suspicious -->
+                <!--
+                <div class="verdict-card verdict-suspicious">
+                    <h2>⚠ SUSPICIOUS</h2>
+                    <p>Some faces (30%) show signs of manipulation. Manual review recommended.</p>
+                    <p><strong>Confidence:</strong> MEDIUM</p>
+                </div>
+                -->
+
+                <!-- Mostly Authentic -->
+                <!--
+                <div class="verdict-card verdict-mostly-authentic">
+                    <h2>MOSTLY AUTHENTIC</h2>
+                    <p>Most faces appear genuine, but 1 face(s) may be manipulated.</p>
+                    <p><strong>Confidence:</strong> MEDIUM</p>
+                </div>
+                -->
+            </section>
+
+            <hr class="divider">
+
+            <!-- Individual Face Analysis -->
+            <section>
+                <h3>Individual Face Analysis</h3>
+                <div class="face-grid">
+                    <div class="face-item">
+                        <img src="https://via.placeholder.com/120?text=Face+1" alt="Face 1">
+                        <div class="label real">REAL (98.5%)</div>
+                        <div class="progress-bar">
+                            <div class="fill success" style="width: 98.5%"></div>
+                        </div>
+                    </div>
+                    <div class="face-item">
+                        <img src="https://via.placeholder.com/120?text=Face+2" alt="Face 2">
+                        <div class="label real">REAL (87.2%)</div>
+                        <div class="progress-bar">
+                            <div class="fill success" style="width: 87.2%"></div>
+                        </div>
+                    </div>
+                    <div class="face-item">
+                        <img src="https://via.placeholder.com/120?text=Face+3" alt="Face 3">
+                        <div class="label fake">FAKE (92.1%)</div>
+                        <div class="progress-bar">
+                            <div class="fill danger" style="width: 92.1%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <footer class="footer">
+                <hr class="divider">
+                <p class="credits">Made with ❤️ by <strong>Taimoor</strong> and <strong>Ahmed</strong> for 🌍</p>
+                <p class="copyright">© 2025 Deepfake Detection System. All rights reserved.</p>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        // File upload handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    document.getElementById('originalImage').src = event.target.result;
+                    // Here you would send to your backend for analysis
+                    console.log('File uploaded:', file.name);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Drag and drop
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#60a5fa';
+            uploadArea.style.background = 'rgba(255,255,255,0.15)';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = 'rgba(255,255,255,0.4)';
+            uploadArea.style.background = 'rgba(255,255,255,0.05)';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = 'rgba(255,255,255,0.4)';
+            uploadArea.style.background = 'rgba(255,255,255,0.05)';
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                document.getElementById('fileInput').files = e.dataTransfer.files;
+                document.getElementById('fileInput').dispatchEvent(new Event('change'));
+            }
+        });
+    </script>
+</body>
+</html>

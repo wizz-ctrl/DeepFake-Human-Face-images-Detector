@@ -1,0 +1,13 @@
+tensorflow
+numpy
+matplotlib
+scikit-learn
+opencv-python
+pillow
+scipy
+seaborn
+tqdm
+xgboost
+scikit-image
+joblib
+streamlit
