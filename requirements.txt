@@ -1,6 +1,10 @@
 # Streamlit Cloud deployment requirements
 streamlit
-tensorflow-cpu
 opencv-python-headless
 numpy
 Pillow
+scikit-learn
+tensorflow-cpu
+joblib
+scipy
+scikit-image

@@ -165,24 +165,20 @@ def extract_svm_features(img):
     """Extract features from an image for SVM model (same as train_model.py)"""
     try:
         # Resize to 160x160 as expected by SVM model
-        img = cv2.resize(img, (160, 160))
-        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        
-        # Convert RGB to BGR for OpenCV operations
-        img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        
+        img_bgr = cv2.resize(img, (160, 160))
+        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
         features = []
-        
-        # 1. Color histogram features (32 bins per channel)
+
+        # 1. Color histogram features (more bins for better discrimination)
         for i in range(3):
             hist = cv2.calcHist([img_bgr], [i], None, [32], [0, 256])
             features.extend(hist.flatten())
-        
-        # 2. LBP features with multiple radii
+
+        # 2. LBP features with multiple radii for better texture analysis
         for radius in [1, 2]:
             padded = np.pad(gray, radius, mode='edge')
             center = gray.astype(np.int32)
-            
+
             lbp = np.zeros_like(gray, dtype=np.int32)
             if radius == 1:
                 lbp += ((padded[0:-2, 0:-2] >= center).astype(np.int32)) * 128
@@ -203,68 +199,70 @@ def extract_svm_features(img):
                 lbp += ((padded[2*r:gray.shape[0]+2*r, r:gray.shape[1]+r] >= center).astype(np.int32)) * 4
                 lbp += ((padded[2*r:gray.shape[0]+2*r, 0:gray.shape[1]] >= center).astype(np.int32)) * 2
                 lbp += ((padded[r:gray.shape[0]+r, 0:gray.shape[1]] >= center).astype(np.int32)) * 1
-            
+
             lbp = lbp.astype(np.uint8)
             lbp_hist, _ = np.histogram(lbp.ravel(), bins=32, range=(0, 256))
             features.extend(lbp_hist)
-        
-        # 3. Edge detection
+
+        # 3. Multiple edge detection methods
         edges_canny = cv2.Canny(gray, 100, 200)
         edge_density_canny = np.sum(edges_canny) / (edges_canny.shape[0] * edges_canny.shape[1])
         features.append(edge_density_canny)
-        
+
+        # Laplacian edges
         laplacian = cv2.Laplacian(gray, cv2.CV_64F)
         features.extend([np.mean(np.abs(laplacian)), np.std(laplacian)])
-        
-        # 4. DCT features
+
+        # 4. Larger DCT features for frequency analysis
         dct_img = dct(dct(gray.T, norm='ortho').T, norm='ortho')
-        dct_features = dct_img[:24, :24].flatten()
+        dct_features = dct_img[:24, :24].flatten()  # More DCT coefficients for larger image
         features.extend(dct_features)
-        
-        # 5. Statistical features
+
+        # 5. Enhanced statistical features
         features.extend([
             np.mean(gray), np.std(gray), np.median(gray),
             np.percentile(gray, 25), np.percentile(gray, 75),
             np.min(gray), np.max(gray),
             np.percentile(gray, 10), np.percentile(gray, 90)
         ])
-        
-        # 6. Gradient features
+
+        # 6. Gradient features in multiple directions
         gx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
         gy = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
         gradient_magnitude = np.sqrt(gx**2 + gy**2)
         gradient_direction = np.arctan2(gy, gx)
-        
+
         features.extend([
             np.mean(gradient_magnitude), np.std(gradient_magnitude),
             np.max(gradient_magnitude), np.median(gradient_magnitude)
         ])
-        
+
+        # Gradient direction histogram
         dir_hist, _ = np.histogram(gradient_direction, bins=16, range=(-np.pi, np.pi))
         features.extend(dir_hist)
-        
+
         # 7. Color channel statistics
         for channel in cv2.split(img_bgr):
             features.extend([np.mean(channel), np.std(channel)])
-        
-        # 8. GLCM-inspired features
+
+        # 8. GLCM-inspired features (simplified co-occurrence)
         h_diff = np.abs(gray[:, 1:].astype(np.int32) - gray[:, :-1].astype(np.int32))
         features.extend([np.mean(h_diff), np.std(h_diff)])
-        
+
         v_diff = np.abs(gray[1:, :].astype(np.int32) - gray[:-1, :].astype(np.int32))
         features.extend([np.mean(v_diff), np.std(v_diff)])
-        
-        # 9. HOG features
+
+        # 9. HOG features (if available) - more features with larger image
         if SKIMAGE_AVAILABLE:
             hog_features = hog(gray, orientations=9, pixels_per_cell=(16, 16),
                               cells_per_block=(2, 2), visualize=False)
-            features.extend(hog_features[:200])
-        
-        # 10. FFT features
+            features.extend(hog_features[:200])  # More HOG features for larger image
+
+        # 10. FFT features for frequency analysis
         fft_img = fft2(gray)
         fft_shifted = np.fft.fftshift(fft_img)
         magnitude_spectrum = np.abs(fft_shifted)
-        
+
         h, w = magnitude_spectrum.shape
         center_region = magnitude_spectrum[h//4:3*h//4, w//4:3*w//4]
         features.extend([
@@ -272,26 +270,26 @@ def extract_svm_features(img):
             np.mean(center_region), np.std(center_region),
             np.max(magnitude_spectrum), np.median(magnitude_spectrum)
         ])
-        
-        # 11. HSV features
+
+        # 11. HSV color space features
         hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
         for channel in range(3):
             hist = cv2.calcHist([hsv], [channel], None, [16], [0, 256])
             features.extend(hist.flatten())
-        
-        # 12. LAB features
+
+        # 12. LAB color space features
         lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
         for channel in range(3):
             features.extend([np.mean(lab[:,:,channel]), np.std(lab[:,:,channel])])
-        
-        # 13. Noise estimation
+
+        # 13. Noise estimation (high-frequency content)
         high_pass = gray.astype(np.float32) - cv2.GaussianBlur(gray, (5, 5), 0).astype(np.float32)
         features.extend([np.mean(np.abs(high_pass)), np.std(high_pass)])
-        
-        # 14. Blur detection
+
+        # 14. Blur detection (variance of Laplacian)
         laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
         features.append(laplacian_var)
-        
+
         return np.array(features)
     except Exception as e:
         st.error(f"Error extracting SVM features: {e}")
@@ -580,25 +578,25 @@ def detect_faces_dnn(image_array, face_net, confidence_threshold=0.3):
     return [(x, y, w, h) for x, y, w, h, _ in final_faces]
 
 
-def extract_face(image_array, bbox, padding_percent=0.25):
-    """Extract and crop a face region with padding."""
+def extract_face(image_array, bbox, padding_percent=0.25, target_size=(256, 256)):
+    """Extract and crop a face region with padding and resize to target_size."""
     x, y, w, h = bbox
     img_h, img_w = image_array.shape[:2]
-    
+
     pad_w = int(w * padding_percent)
     pad_h = int(h * padding_percent)
-    
+
     x1 = max(0, x - pad_w)
     y1 = max(0, y - pad_h)
     x2 = min(img_w, x + w + pad_w)
     y2 = min(img_h, y + h + pad_h)
-    
+
     face_crop = image_array[y1:y2, x1:x2]
-    
+
     if face_crop.size == 0 or face_crop.shape[0] < 10 or face_crop.shape[1] < 10:
         return None
-    
-    face_resized = cv2.resize(face_crop, (256, 256), interpolation=cv2.INTER_AREA)
+
+    face_resized = cv2.resize(face_crop, target_size, interpolation=cv2.INTER_AREA)
     return face_resized
 
 
@@ -622,17 +620,19 @@ def classify_face_cnn(face_array, model):
 def classify_face_svm(face_array, svm_components):
     """Run SVM model inference on a face."""
     if svm_components['model'] is None:
+        st.error("SVM model is not loaded.")
         return "UNKNOWN", 0.0, 0.5
     
     if len(face_array.shape) == 2:
         face_array = cv2.cvtColor(face_array, cv2.COLOR_GRAY2RGB)
     elif face_array.shape[2] == 4:
         face_array = cv2.cvtColor(face_array, cv2.COLOR_RGBA2RGB)
-    
+
     # Extract features for SVM
     features = extract_svm_features(face_array)
-    
+
     if features is None:
+        st.error("Feature extraction for SVM returned None.")
         return "UNKNOWN", 0.0, 0.5
     
     try:
@@ -641,21 +641,21 @@ def classify_face_svm(face_array, svm_components):
             features_scaled = svm_components['scaler'].transform(features.reshape(1, -1))
         else:
             features_scaled = features.reshape(1, -1)
-        
+
         # Apply feature selection
         if svm_components['selector'] is not None:
             features_scaled = svm_components['selector'].transform(features_scaled)
-        
+
         # Predict
         prediction = svm_components['model'].predict(features_scaled)[0]
         probability = svm_components['model'].predict_proba(features_scaled)[0]
-        
+
         # SVM: 0 = Real, 1 = Fake
         is_fake = prediction == 1
         raw_score = probability[1]  # Probability of being fake
         confidence = probability[prediction]
         label = "FAKE" if is_fake else "REAL"
-        
+
         return label, float(confidence), float(raw_score)
     except Exception as e:
         st.error(f"SVM prediction error: {e}")
@@ -705,11 +705,14 @@ def analyze_image(image, model, face_net, model_type="cnn", svm_components=None)
     
     for i, bbox in enumerate(face_boxes):
         x, y, w, h = [int(v) for v in bbox]
-        face_crop = extract_face(image_array, bbox)
-        
+        if model_type == "svm":
+            face_crop = extract_face(image_array, bbox, target_size=(160, 160))
+        else:
+            face_crop = extract_face(image_array, bbox, target_size=(256, 256))
+
         if face_crop is None:
             continue
-        
+
         label, confidence, raw_score = classify_face(face_crop, model, model_type, svm_components)
         
         if label == "REAL":
