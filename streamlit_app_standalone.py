@@ -822,8 +822,7 @@ def main():
     
     # Sidebar with Model Selection
     with st.sidebar:
-        st.markdown("## 🎯 Select Detection Model")
-        
+        st.markdown("## Select Detection Model")
         # Model selector
         model_choice = st.radio(
             "Choose Model:",
@@ -831,39 +830,36 @@ def main():
             index=0,
             help="Select which model to use for deepfake detection"
         )
-        
         st.markdown("---")
-        
         # Show model-specific info based on selection
         if model_choice == "CNN (EfficientNetV2B0)":
-            st.markdown("## 🧠 CNN Model Info")
+            st.markdown("## CNN Model Info")
             st.markdown("""
             **Architecture:** EfficientNetV2B0
             
             **Performance Metrics:**
-            - ✅ Accuracy: **96.5%**
-            - 🎯 Fake Detection: 94.7%
-            - ✅ Real Detection: 98.3%
-            - 📈 AUC Score: 99.39%
+            - Accuracy: **96.5%**
+            - Fake Detection: 94.7%
+            - Real Detection: 98.3%
+            - AUC Score: 99.39%
             
             **Features:**
             - Deep Learning based
             - Pre-trained on ImageNet
             - 40,000 training images
             """)
-            
             # Check model status
             if cnn_model is not None:
-                st.success("✓ CNN Model loaded")
+                st.success("CNN Model loaded")
             else:
-                st.error("✗ CNN Model not found")
+                st.error("CNN Model not found")
         else:
-            st.markdown("## 🔬 SVM Model Info")
+            st.markdown("## SVM Model Info")
             st.markdown("""
             **Architecture:** Random Forest + SVM Ensemble
             
             **Performance Metrics:**
-            - ✅ Accuracy: **82.25%**
+            - Accuracy: **82.25%**
             
             **Features Used:**
             - Color histograms (RGB, HSV, LAB)
@@ -873,17 +869,15 @@ def main():
             - Edge & gradient features
             - Statistical features
             """)
-            
             # Check model status
             if svm_components['model'] is not None:
-                st.success("✓ SVM Model loaded")
+                st.success("SVM Model loaded")
                 if svm_components['scaler'] is not None:
-                    st.success("✓ Scaler loaded")
+                    st.success("Scaler loaded")
                 if svm_components['selector'] is not None:
-                    st.success("✓ Feature selector loaded")
+                    st.success("Feature selector loaded")
             else:
-                st.error("✗ SVM Model not found")
-        
+                st.error("SVM Model not found")
         st.markdown("---")
         st.markdown("## How It Works")
         st.markdown("""
@@ -900,21 +894,18 @@ def main():
     
     # Check if selected model is available
     if model_type == "cnn" and cnn_model is None:
-        st.error("❌ CNN model not found. Please check the model file path.")
+        st.error("CNN model not found. Please check the model file path.")
         st.info(f"Expected at: {CNN_MODEL_PATH}")
         return
-    
     if model_type == "svm" and svm_components['model'] is None:
-        st.error("❌ SVM model not found. Please check the model file path.")
+        st.error("SVM model not found. Please check the model file path.")
         st.info(f"Expected at: {SVM_MODEL_PATH}")
         return
-    
     if face_net is None:
-        st.warning("⚠️ Face detector not loaded. Please ensure deploy.prototxt and .caffemodel files are present.")
+        st.warning("Face detector not loaded. Please ensure deploy.prototxt and .caffemodel files are present.")
         return
-    
     # Show selected model
-    st.success(f"✅ Using **{model_choice}** for detection")
+    st.success(f"Using **{model_choice}** for detection")
     
     # File uploader
     st.markdown("### Upload Image")
